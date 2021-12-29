@@ -7,8 +7,7 @@ int main(int argc, char * argv[]){
     char buffer[3];
 
     if(argc < 2){
-        printf("No input files specified!\n");
-        return 1;
+        return 0;
     } 
 
     /* second edition: printing more than one file */
@@ -17,7 +16,7 @@ int main(int argc, char * argv[]){
         filePtr = fopen(argv[i + 1], "r");
         
         if (filePtr == NULL){
-            printf("cannot open file\n");
+            printf("wcat: cannot open file\n");
             return 1;
         }
 
