@@ -5,24 +5,28 @@
 int main(int argc, char * argv[]){
     FILE * filePtr;
     char buffer[3];
+
     if(argc < 2){
         printf("No input files specified!\n");
         return 1;
     } 
 
-    /* first edition: printing only one file */
+    /* second edition: printing more than one file */
 
-    filePtr = fopen(argv[1], "r");
+    for(int i = 0; i < argc - 1; i++){
+        filePtr = fopen(argv[i + 1], "r");
+        
+        if (filePtr == NULL){
+            printf("cannot open file\n");
+            return 1;
+        }
 
-    if(filePtr == NULL){
-        printf("cannot open file\n");
-        return 1;
-    } 
+        while (fgets(buffer, 2, filePtr) != NULL){
+            printf("%s", buffer);
+        }
 
-    while(fgets(buffer,2,filePtr) != NULL){
-        printf("%s",buffer);
+        fclose(filePtr);
     }
 
-    fclose(filePtr);
     return 0;
 }
