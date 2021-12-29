@@ -1,17 +1,17 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#define BUFFER_SIZE 2048
 
 int main(int argc, char * argv[]){
     FILE * filePtr;
-    char buffer[3];
+    char buffer[BUFFER_SIZE];
 
     if(argc < 2){
         return 0;
     } 
 
     /* second edition: printing more than one file */
-
     for(int i = 0; i < argc - 1; i++){
         filePtr = fopen(argv[i + 1], "r");
         
