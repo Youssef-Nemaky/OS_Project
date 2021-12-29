@@ -13,36 +13,26 @@ int main(int argc, char *argv[]){
         return 1;
     } else if (argc < 3) {
         /* Read from STDIN */
+        filePtr = stdin;
     } else {
         /* Read from the files */
         filePtr = fopen(argv[2], "r");
-
+    
         if(filePtr == NULL){
             printf("wgrep: cannot open file\n");
             return 1;
         }
-
-        getline(&linePtr,&bufferSize,filePtr);
-
-        if(linePtr == NULL){
-            printf("line reading failed\n");
-            return 1;
-        }
-
-        printf("%s\n", linePtr);
-
-        searchResult = strstr(linePtr,argv[1]);
-
-        if(searchResult != NULL){
-            printf("%s was found in %s\n", argv[1], searchResult);
-            //printf("%s",linePtr);
-        } else {
-            printf("Couldn't find %s in the first line\n", argv[1]);
-        }
-        free(linePtr);
-        fclose(filePtr);
     }
-    
-    
+
+    while (getline(&linePtr, &bufferSize, filePtr) != -1){
+        searchResult = strstr(linePtr, argv[1]);
+        if (searchResult != NULL)
+        {
+            printf("%s", linePtr);
+        }
+    }
+    free(linePtr);
+    fclose(filePtr);
+
     return 0;
 }
