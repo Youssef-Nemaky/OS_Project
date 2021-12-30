@@ -22,24 +22,25 @@ int main(int argc, char *argv[]){
         return 1;
     }
 
-    getline(&linePtr,&lineSize,filePtr);
+    while(getline(&linePtr,&lineSize,filePtr) != -1){
 
-    /* now linePtr is like an array of string containing the line which fgets read */
-    start = linePtr;
-    end = linePtr + 1;
+        /* now linePtr is like an array of string containing the line which fgets read */
+        start = linePtr;
+        end = linePtr + 1;
 
-    while( (*start != '\n' )&& (*start != '\r') && (*start != ' ')){
-        runLength = 1;
-        while(*end == *start){
-            runLength++;
+        while ((*start != '\n') && (*start != '\r') && (*start != ' ')){
+            runLength = 1;
+            while (*end == *start){
+                runLength++;
+                end++;
+            }
+            fwrite(&runLength, 1, sizeof(int), stdout);
+            fwrite(start, 1, sizeof(char), stdout);
+            start = end;
             end++;
         }
-        fwrite(&runLength,1, sizeof(int),stdout);
-        fwrite(start,1,sizeof(char),stdout);
-        //printf("%c%c", runLength, *start);
-        start = end;
-        end++;
+        fwrite("\n",sizeof(char),sizeof(char),stdout);
     }
-    printf("\n");
+
     return 0;
 }
