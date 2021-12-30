@@ -34,8 +34,9 @@ int main(int argc, char *argv[]){
             runLength++;
             end++;
         }
-
-        printf("%c%c", runLength, *start);
+        fwrite(&runLength,1, sizeof(int),stdout);
+        fwrite(start,1,sizeof(char),stdout);
+        //printf("%c%c", runLength, *start);
         start = end;
         end++;
     }
