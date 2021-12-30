@@ -35,7 +35,7 @@ int main(int argc, char *argv[]){
             end++;
         }
 
-        printf("%d%c", runLength, *start);
+        printf("%c%c", runLength, *start);
         start = end;
         end++;
     }
