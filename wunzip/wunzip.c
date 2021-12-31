@@ -12,21 +12,22 @@ int main(int argc, char * argv[]){
         return 1;
     }
 
-
-        filePtr = fopen(argv[1],"r");
+    for(int i = 0; i < argc - 1; i++){
+        filePtr = fopen(argv[i + 1],"r");
 
         if(filePtr == NULL){
             printf("wzip: cannon open file\n");
             return 1;
         }
-
-        fread(&numberOfChars, sizeof(int), 1, filePtr);
-        fread(&character, sizeof(char), 1, filePtr);
-
-        printf("%d - %c", numberOfChars, character);
+        
+        while((fread(&numberOfChars, sizeof(int), 1, filePtr) != 0) && (fread(&character, sizeof(char), 1, filePtr) != 0))
+        {
+            while (numberOfChars > 0){
+                printf("%c", character);
+                numberOfChars--;
+            }
+        }
         fclose(filePtr);
-    
-
-
+    }
     return 0;
 }
