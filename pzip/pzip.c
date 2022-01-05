@@ -10,6 +10,11 @@
 //int numberOfProcessors = get_nprocs();
 //int numberOfFileThreads = 0;
 
+/* We need a lock to access the global variable to make sure everything is working fine */
+
+pthread_mutex_t buffer_size_lock = PTHREAD_MUTEX_INITIALIZER;
+unsigned volatile long long buffer_size = 0;
+
 typedef struct{
     char * fileName;
     int fd;
@@ -25,7 +30,7 @@ void * fileThread(void * arg){
     fileStructPtr->fd = open(fileStructPtr->fileName, O_RDWR);
 
     printf("FD: %d\n", fileStructPtr->fd);
-    
+
     if(fileStructPtr->fd == -1){
         printf("couldn't open file\n");
         exit(1);
@@ -39,6 +44,11 @@ void * fileThread(void * arg){
     }
 
     printf("File size is %ld\n", sb.st_size);
+    
+    /* File size represents number of elements(characters) */
+    pthread_mutex_lock(&buffer_size_lock);
+    buffer_size = buffer_size + sb.st_size;
+    pthread_mutex_unlock(&buffer_size_lock);
 
     fileStructPtr->filePtr = mmap(NULL, sb.st_size, PROT_READ | PROT_WRITE, MAP_SHARED, fileStructPtr->fd, 0);
 
@@ -50,9 +60,9 @@ void * fileThread(void * arg){
 
 
 /* Brain Storming 
- * 1) use mmap on multiple files by using multiple threads 
- * 2) Determine the size of each file
- * 3) Determine the total buffer size
+ * 1) use mmap on multiple files by using multiple threads DONE
+ * 2) Determine the size of each file DONE
+ * 3) Determine the total buffer size DONE
  * 4) Malloc the buffer
  * 5) Read all the files and add them to the buffer
  * 6) Parallel zipping based on the number of threads and the buffer size
@@ -82,6 +92,8 @@ int main(int argc, char * argv[]){
     for(int i = 0 ; i < num_args; i++){
         pthread_join(p[i], NULL);
     }
+
+    printf("in main the buffer size after running the threads is: %llu\n", buffer_size);
 
     return 0;
 }
