@@ -15,16 +15,19 @@
 pthread_mutex_t buffer_size_lock = PTHREAD_MUTEX_INITIALIZER;
 unsigned volatile long long buffer_size = 0;
 
+int num_args;
+
 typedef struct{
     char * fileName;
     int fd;
     char * filePtr;
     unsigned long long fileSize;
+    unsigned int fileIndex;
+    unsigned long long bufferStartIndex;
 } file_thread_t;
 
 void * fileThread(void * arg){
     file_thread_t * fileStructPtr = (file_thread_t *)arg;
-    
     struct stat sb;
     
     fileStructPtr->fd = open(fileStructPtr->fileName, O_RDWR);
@@ -44,7 +47,7 @@ void * fileThread(void * arg){
     }
 
     printf("File size is %ld\n", sb.st_size);
-    
+
     /* File size represents number of elements(characters) */
     pthread_mutex_lock(&buffer_size_lock);
     buffer_size = buffer_size + sb.st_size;
@@ -63,7 +66,7 @@ void * fileThread(void * arg){
  * 1) use mmap on multiple files by using multiple threads DONE
  * 2) Determine the size of each file DONE
  * 3) Determine the total buffer size DONE
- * 4) Malloc the buffer
+ * 4) Malloc the buffer DONE
  * 5) Read all the files and add them to the buffer
  * 6) Parallel zipping based on the number of threads and the buffer size
  * EX bufferSize = 16 and numOfThreads = 4 -> each thread will work on 4 characters 
@@ -80,12 +83,13 @@ int main(int argc, char * argv[]){
         return 1;
     }
 
-    int num_args = argc - 1;
+    num_args = argc - 1;
 
     pthread_t p[num_args];
     file_thread_t pStruct[num_args];
     for(int i = 0; i < num_args; i++){
         pStruct[i].fileName = argv[i + 1];
+        pStruct[i].fileIndex = i;
         pthread_create(&p[i], NULL, fileThread, &pStruct[i]);
     }
 
@@ -94,6 +98,26 @@ int main(int argc, char * argv[]){
     }
 
     printf("in main the buffer size after running the threads is: %llu\n", buffer_size);
+
+    char * buffer = (char *)malloc(buffer_size * sizeof(char));
+
+    buffer[0] = 0;
+    /* Where are we? 
+     * We have a buffer of length suitable of containing all the files the user wants to compress
+     * What should we do next?
+     * PARALLEL read all the files using the memory location mmap provided us with
+     * and write all the data to the buffer
+     */
+
+    /* Printing starting and ending index for each struct */
+    pStruct[0].bufferStartIndex = 0;
+    for(int i = 1; i < num_args; i++){
+        pStruct[i].bufferStartIndex = pStruct[i - 1].bufferStartIndex + pStruct[i - 1].fileSize;
+    }
+    
+    for(int i = 0; i < num_args;i++){
+        printf("start: %llu end: %llu\n", pStruct[i].bufferStartIndex, pStruct[i].bufferStartIndex + pStruct[i].fileSize - 1);
+    }
 
     return 0;
 }
