@@ -21,10 +21,11 @@ void * fileThread(void * arg){
     file_thread_t * fileStructPtr = (file_thread_t *)arg;
     
     struct stat sb;
-    printf("FD: %d\n", fileStructPtr->fd);
     
     fileStructPtr->fd = open(fileStructPtr->fileName, O_RDWR);
 
+    printf("FD: %d\n", fileStructPtr->fd);
+    
     if(fileStructPtr->fd == -1){
         printf("couldn't open file\n");
         exit(1);
@@ -69,10 +70,18 @@ int main(int argc, char * argv[]){
         return 1;
     }
 
-    pthread_t p;
-    file_thread_t pStruct;
-    pStruct.fileName = argv[1]; //Assuming only 1 file is passed
-    pthread_create(&p, NULL, fileThread, &pStruct);
-    pthread_join(p, NULL);
+    int num_args = argc - 1;
+
+    pthread_t p[num_args];
+    file_thread_t pStruct[num_args];
+    for(int i = 0; i < num_args; i++){
+        pStruct[i].fileName = argv[i + 1];
+        pthread_create(&p[i], NULL, fileThread, &pStruct[i]);
+    }
+
+    for(int i = 0 ; i < num_args; i++){
+        pthread_join(p[i], NULL);
+    }
+
     return 0;
 }
