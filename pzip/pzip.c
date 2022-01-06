@@ -16,6 +16,7 @@ pthread_mutex_t buffer_size_lock = PTHREAD_MUTEX_INITIALIZER;
 unsigned volatile long long buffer_size = 0;
 
 int num_args;
+char * buffer;
 
 typedef struct{
     char * fileName;
@@ -61,13 +62,22 @@ void * fileThread(void * arg){
     return NULL;
 }
 
+void * loadBufferThread(void * arg){
+    file_thread_t * fileStructPtr = (file_thread_t *)arg;
+    unsigned long long start = fileStructPtr->bufferStartIndex;
+    unsigned long long end = fileStructPtr->bufferStartIndex + fileStructPtr->fileSize;
+    for(unsigned long long i = start; i < end; i++){
+        buffer[i] = (fileStructPtr->filePtr)[i - start];
+    }
+    return NULL;
+}
 
 /* Brain Storming 
  * 1) use mmap on multiple files by using multiple threads DONE
  * 2) Determine the size of each file DONE
  * 3) Determine the total buffer size DONE
  * 4) Malloc the buffer DONE
- * 5) Read all the files and add them to the buffer
+ * 5) Read all the files and add them to the buffer DONE
  * 6) Parallel zipping based on the number of threads and the buffer size
  * EX bufferSize = 16 and numOfThreads = 4 -> each thread will work on 4 characters 
  * 7) Merge all the output of all threads
@@ -96,12 +106,11 @@ int main(int argc, char * argv[]){
     for(int i = 0 ; i < num_args; i++){
         pthread_join(p[i], NULL);
     }
-
+    
     printf("in main the buffer size after running the threads is: %llu\n", buffer_size);
 
-    char * buffer = (char *)malloc(buffer_size * sizeof(char));
+    buffer = (char *)malloc(buffer_size * sizeof(char));
 
-    buffer[0] = 0;
     /* Where are we? 
      * We have a buffer of length suitable of containing all the files the user wants to compress
      * What should we do next?
@@ -117,6 +126,21 @@ int main(int argc, char * argv[]){
     
     for(int i = 0; i < num_args;i++){
         printf("start: %llu end: %llu\n", pStruct[i].bufferStartIndex, pStruct[i].bufferStartIndex + pStruct[i].fileSize - 1);
+    }
+
+    //pthread_t p2[num_args];
+    for(int i = 0; i < num_args; i++){
+        pthread_create(&p[i], NULL, loadBufferThread, &pStruct[i]);
+    }
+
+    for(int i = 0; i < num_args; i++){
+        pthread_join(p[i], NULL);
+    }
+
+    printf("(((((((((Printing The Buffer:)))))))))\n");
+
+    for(unsigned long long i = 0; i < buffer_size; i++){
+        printf("%c", buffer[i]);
     }
 
     return 0;
