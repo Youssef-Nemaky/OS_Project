@@ -43,21 +43,21 @@ void * fileThread(void * arg){
     
     fileStructPtr->fd = open(fileStructPtr->fileName, O_RDWR);
 
-    printf("FD: %d\n", fileStructPtr->fd);
+    //printf("FD: %d\n", fileStructPtr->fd);
 
     if(fileStructPtr->fd == -1){
-        printf("couldn't open file\n");
+        //printf("couldn't open file\n");
         exit(1);
     }    
 
     if(fstat(fileStructPtr->fd, &sb) == -1){
-        printf("Couldn't get file size.\n");
+        //printf("Couldn't get file size.\n");
         exit(1);
     } else {
         fileStructPtr->fileSize = sb.st_size;
     }
 
-    printf("File size is %ld\n", sb.st_size);
+    //printf("File size is %ld\n", sb.st_size);
 
     /* File size represents number of elements(characters) */
     pthread_mutex_lock(&buffer_size_lock);
@@ -67,7 +67,7 @@ void * fileThread(void * arg){
     fileStructPtr->filePtr = mmap(NULL, sb.st_size, PROT_READ | PROT_WRITE, MAP_SHARED, fileStructPtr->fd, 0);
 
     for(int i = 0; i < sb.st_size; i++){
-        printf("%c", (fileStructPtr->filePtr)[i]);
+        //printf("%c", (fileStructPtr->filePtr)[i]);
     }
     return NULL;
 }
@@ -85,7 +85,7 @@ void * loadBufferThread(void * arg){
 void * compressBufferThread(void * arg){
     int * indexPtr =  (int *)arg;
     int index = *indexPtr;
-    printf("Index: %d\n", index);
+    //printf("Index: %d\n", index);
     int runLength;
     int counter = 0;
     for(int i =  index * (buffer_size / numberOfProcessors),j = i + 1; i < (index + 1) * (buffer_size / numberOfProcessors);){
@@ -144,7 +144,7 @@ int main(int argc, char * argv[]){
         pthread_join(p[i], NULL);
     }
     
-    printf("in main the buffer size after running the threads is: %llu\n", buffer_size);
+    //printf("in main the buffer size after running the threads is: %llu\n", buffer_size);
 
     buffer = (char *)malloc(buffer_size * sizeof(char));
 
@@ -237,11 +237,35 @@ int main(int argc, char * argv[]){
     
     for(int i = 0; i < zippedByteLength; i++){
         for(int j = 0; j < counterArr[i]; j++){
-            printf("%d%c", zippedByteArr[i][j].characterCount, zippedByteArr[i][j].chracter);
+            //printf("%d%c", zippedByteArr[i][j].characterCount, zippedByteArr[i][j].chracter);
         }
-        printf("\n");
+       // printf("\n");
     }
     
+    //counterArr[i] -> number of structures 
+
+    for(int i = 0; i < zippedByteLength; i++){
+        for(int j = 0; j < counterArr[i] - 1;j++){
+            fwrite(&(zippedByteArr[i][j].characterCount), 1, sizeof(int), stdout);
+            fwrite(&(zippedByteArr[i][j].chracter), 1, sizeof(char), stdout);
+            //printf("%d%c", zippedByteArr[i][j].characterCount, zippedByteArr[i][j].chracter);
+        }
+
+        if (i < zippedByteLength - 1){
+            if (zippedByteArr[i][counterArr[i] - 1].chracter == zippedByteArr[i + 1][0].chracter){
+                /* write the total number of chracters (last + start) */
+                zippedByteArr[i+1][0].characterCount +=  zippedByteArr[i][counterArr[i] - 1].characterCount;
+            } else {
+                fwrite(&(zippedByteArr[i][counterArr[i] - 1].characterCount), 1, sizeof(int), stdout);
+                fwrite(&(zippedByteArr[i][counterArr[i] - 1].chracter), 1, sizeof(char), stdout);
+                //printf("%d%c", zippedByteArr[i][counterArr[i] - 1].characterCount, zippedByteArr[i][counterArr[i] - 1].chracter);
+            }
+        } else {
+            fwrite(&(zippedByteArr[i][counterArr[i] - 1].characterCount), 1, sizeof(int), stdout);
+            fwrite(&(zippedByteArr[i][counterArr[i] - 1].chracter), 1, sizeof(char), stdout);
+            //printf("%d%c", zippedByteArr[i][counterArr[i] - 1].characterCount, zippedByteArr[i][counterArr[i] - 1].chracter);
+        }
+    }
     //printf("HERE: 3\n");
     return 0;
 }
