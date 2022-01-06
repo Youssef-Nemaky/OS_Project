@@ -7,13 +7,23 @@
 #include <unistd.h> 
 #include <sys/sysinfo.h>
 #include <pthread.h>
-//int numberOfProcessors = get_nprocs();
+
+int numberOfProcessors = 8;
 //int numberOfFileThreads = 0;
 
 /* We need a lock to access the global variable to make sure everything is working fine */
 
 pthread_mutex_t buffer_size_lock = PTHREAD_MUTEX_INITIALIZER;
 unsigned volatile long long buffer_size = 0;
+
+int stupidArr2[8];
+
+typedef struct{
+    int characterCount;
+    char chracter;
+} zipped_byte_t;
+
+zipped_byte_t ** zippedByteArr;
 
 int num_args;
 char * buffer;
@@ -72,6 +82,28 @@ void * loadBufferThread(void * arg){
     return NULL;
 }
 
+void * compressBufferThread(void * arg){
+    int * indexPtr =  (int *)arg;
+    int index = *indexPtr;
+    printf("Index: %d\n", index);
+    int runLength;
+    int counter = 0;
+    for(int i =  index * 15,j = i + 1; i < (index + 1) * 15;){
+        runLength = 1;
+        while(buffer[i] == buffer[j] && j < (index + 1) * 15){
+            runLength++;
+            j++;
+        }
+        zippedByteArr[index][counter].characterCount = runLength;
+        zippedByteArr[index][counter].chracter = buffer[i];
+        counter++;
+        i = j;
+        j = i + 1;
+    }
+    stupidArr2[index] = counter;
+    return NULL;
+}
+
 /* Brain Storming 
  * 1) use mmap on multiple files by using multiple threads DONE
  * 2) Determine the size of each file DONE
@@ -83,6 +115,8 @@ void * loadBufferThread(void * arg){
  * 7) Merge all the output of all threads
  */
 int main(int argc, char * argv[]){
+    //printf("%d", get_nprocs());
+    //return 0;
     /*
     int fd;
     struct stat sb;
@@ -143,5 +177,32 @@ int main(int argc, char * argv[]){
         printf("%c", buffer[i]);
     }
 
+
+
+    /* Compressing */    
+    zippedByteArr = malloc(numberOfProcessors * sizeof(zipped_byte_t *));
+    int stupidArr[numberOfProcessors];
+    for(int i = 0; i < numberOfProcessors; i++){
+        printf("IN FOR LOOP I = %d\n", i);
+        zippedByteArr[i] = (zipped_byte_t *)malloc(2 * (buffer_size / numberOfProcessors) * sizeof(zipped_byte_t));
+        stupidArr[i] = i;
+        pthread_create(&p[i], NULL, compressBufferThread, &stupidArr[i]);
+    }
+    
+    printf("HERE: 1\n");
+    for(int i = 0; i < numberOfProcessors; i++){
+        pthread_join(p[i], NULL);
+    }
+
+    printf("HERE: 2\n");
+    
+    for(int i = 0; i < numberOfProcessors; i++){
+        for(int j = 0; j < stupidArr2[i]; j++){
+            printf("%d%c", zippedByteArr[i][j].characterCount, zippedByteArr[i][j].chracter);
+        }
+        printf("\n");
+    }
+    
+    printf("HERE: 3\n");
     return 0;
 }
