@@ -16,7 +16,7 @@ int numberOfProcessors = 8;
 pthread_mutex_t buffer_size_lock = PTHREAD_MUTEX_INITIALIZER;
 unsigned volatile long long buffer_size = 0;
 
-int stupidArr2[8];
+int * counterArr;
 
 typedef struct{
     int characterCount;
@@ -88,9 +88,9 @@ void * compressBufferThread(void * arg){
     printf("Index: %d\n", index);
     int runLength;
     int counter = 0;
-    for(int i =  index * 15,j = i + 1; i < (index + 1) * 15;){
+    for(int i =  index * (buffer_size / numberOfProcessors),j = i + 1; i < (index + 1) * (buffer_size / numberOfProcessors);){
         runLength = 1;
-        while(buffer[i] == buffer[j] && j < (index + 1) * 15){
+        while(buffer[i] == buffer[j] && j < (index + 1) * (buffer_size / numberOfProcessors)){
             runLength++;
             j++;
         }
@@ -100,7 +100,7 @@ void * compressBufferThread(void * arg){
         i = j;
         j = i + 1;
     }
-    stupidArr2[index] = counter;
+    counterArr[index] = counter;
     return NULL;
 }
 
@@ -122,10 +122,13 @@ int main(int argc, char * argv[]){
     struct stat sb;
     char * filePtr;
     */
-    if(argc < 2){
+    
+    if (argc < 2)
+    {
         printf("wzip: file1 [file2 ...]\n");
         return 1;
     }
+    int zippedByteLength;
 
     num_args = argc - 1;
 
@@ -159,7 +162,7 @@ int main(int argc, char * argv[]){
     }
     
     for(int i = 0; i < num_args;i++){
-        printf("start: %llu end: %llu\n", pStruct[i].bufferStartIndex, pStruct[i].bufferStartIndex + pStruct[i].fileSize - 1);
+        //printf("start: %llu end: %llu\n", pStruct[i].bufferStartIndex, pStruct[i].bufferStartIndex + pStruct[i].fileSize - 1);
     }
 
     //pthread_t p2[num_args];
@@ -171,38 +174,74 @@ int main(int argc, char * argv[]){
         pthread_join(p[i], NULL);
     }
 
-    printf("(((((((((Printing The Buffer:)))))))))\n");
+    //printf("(((((((((Printing The Buffer:)))))))))\n");
 
     for(unsigned long long i = 0; i < buffer_size; i++){
-        printf("%c", buffer[i]);
+        //printf("%c", buffer[i]);
     }
 
 
 
-    /* Compressing */    
-    zippedByteArr = malloc(numberOfProcessors * sizeof(zipped_byte_t *));
-    int stupidArr[numberOfProcessors];
-    for(int i = 0; i < numberOfProcessors; i++){
-        printf("IN FOR LOOP I = %d\n", i);
-        zippedByteArr[i] = (zipped_byte_t *)malloc(2 * (buffer_size / numberOfProcessors) * sizeof(zipped_byte_t));
-        stupidArr[i] = i;
-        pthread_create(&p[i], NULL, compressBufferThread, &stupidArr[i]);
+    /* Compressing */
+    /* If threads are enough or not for dividing the buffer*/
+    if ((buffer_size / numberOfProcessors) * numberOfProcessors != buffer_size)
+    {
+        /* Make a new array of structures */
+        zippedByteLength = numberOfProcessors + 1;
+        counterArr = (int *)malloc(zippedByteLength * sizeof(int));
+    } else {
+        zippedByteLength = numberOfProcessors;
+        counterArr = (int *)malloc(zippedByteLength * sizeof(int));
     }
     
-    printf("HERE: 1\n");
+    zippedByteArr = malloc(zippedByteLength * sizeof(zipped_byte_t *));
+    int indexArr[numberOfProcessors];
+    for(int i = 0; i < numberOfProcessors; i++){
+        //printf("IN FOR LOOP I = %d\n", i);
+        zippedByteArr[i] = (zipped_byte_t *)malloc(2 * (buffer_size / numberOfProcessors) * sizeof(zipped_byte_t));
+        indexArr[i] = i;
+        pthread_create(&p[i], NULL, compressBufferThread, &indexArr[i]);
+    }
+    
+    //printf("HERE: 1\n");
     for(int i = 0; i < numberOfProcessors; i++){
         pthread_join(p[i], NULL);
     }
 
-    printf("HERE: 2\n");
+    if ((buffer_size / numberOfProcessors) * numberOfProcessors != buffer_size){
+        /* Make a new array of structures */
+        int counter = 0;
+        int runLength = 1;
+        zippedByteArr[numberOfProcessors] = (zipped_byte_t *)malloc(2 * (buffer_size / numberOfProcessors) * sizeof(zipped_byte_t));
+        for (int i = numberOfProcessors * (buffer_size / numberOfProcessors), j = i + 1; i < buffer_size;)
+        {
+            runLength = 1;
+            while (buffer[i] == buffer[j] && j < buffer_size)
+            {
+                runLength++;
+                j++;
+            }
+            zippedByteArr[numberOfProcessors][counter].characterCount = runLength;
+            zippedByteArr[numberOfProcessors][counter].chracter = buffer[i];
+            counter++;
+            i = j;
+            j = i + 1;
+        }
+        counterArr[numberOfProcessors] = counter;
+    }
+
+
+   
+
+    //printf("HERE: 2\n");
     
-    for(int i = 0; i < numberOfProcessors; i++){
-        for(int j = 0; j < stupidArr2[i]; j++){
+    for(int i = 0; i < zippedByteLength; i++){
+        for(int j = 0; j < counterArr[i]; j++){
             printf("%d%c", zippedByteArr[i][j].characterCount, zippedByteArr[i][j].chracter);
         }
         printf("\n");
     }
     
-    printf("HERE: 3\n");
+    //printf("HERE: 3\n");
     return 0;
 }
