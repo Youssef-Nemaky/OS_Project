@@ -9,10 +9,8 @@
 #include <pthread.h>
 
 int numberOfProcessors = 8;
-//int numberOfFileThreads = 0;
 
 /* We need a lock to access the global variable to make sure everything is working fine */
-
 pthread_mutex_t buffer_size_lock = PTHREAD_MUTEX_INITIALIZER;
 unsigned volatile long long buffer_size = 0;
 
@@ -27,6 +25,7 @@ zipped_byte_t ** zippedByteArr;
 
 int num_args;
 char * buffer;
+
 
 typedef struct{
     char * fileName;
@@ -43,21 +42,17 @@ void * fileThread(void * arg){
     
     fileStructPtr->fd = open(fileStructPtr->fileName, O_RDWR);
 
-    //printf("FD: %d\n", fileStructPtr->fd);
-
     if(fileStructPtr->fd == -1){
-        //printf("couldn't open file\n");
+        printf("couldn't open file\n");
         exit(1);
     }    
 
     if(fstat(fileStructPtr->fd, &sb) == -1){
-        //printf("Couldn't get file size.\n");
+        printf("Couldn't get file size.\n");
         exit(1);
     } else {
         fileStructPtr->fileSize = sb.st_size;
     }
-
-    //printf("File size is %ld\n", sb.st_size);
 
     /* File size represents number of elements(characters) */
     pthread_mutex_lock(&buffer_size_lock);
@@ -66,9 +61,6 @@ void * fileThread(void * arg){
 
     fileStructPtr->filePtr = mmap(NULL, sb.st_size, PROT_READ | PROT_WRITE, MAP_SHARED, fileStructPtr->fd, 0);
 
-    for(int i = 0; i < sb.st_size; i++){
-        //printf("%c", (fileStructPtr->filePtr)[i]);
-    }
     return NULL;
 }
 
@@ -85,7 +77,6 @@ void * loadBufferThread(void * arg){
 void * compressBufferThread(void * arg){
     int * indexPtr =  (int *)arg;
     int index = *indexPtr;
-    //printf("Index: %d\n", index);
     int runLength;
     int counter = 0;
     for(int i =  index * (buffer_size / numberOfProcessors),j = i + 1; i < (index + 1) * (buffer_size / numberOfProcessors);){
@@ -115,14 +106,6 @@ void * compressBufferThread(void * arg){
  * 7) Merge all the output of all threads
  */
 int main(int argc, char * argv[]){
-    //printf("%d", get_nprocs());
-    //return 0;
-    /*
-    int fd;
-    struct stat sb;
-    char * filePtr;
-    */
-    
     if (argc < 2)
     {
         printf("wzip: file1 [file2 ...]\n");
@@ -143,29 +126,16 @@ int main(int argc, char * argv[]){
     for(int i = 0 ; i < num_args; i++){
         pthread_join(p[i], NULL);
     }
-    
-    //printf("in main the buffer size after running the threads is: %llu\n", buffer_size);
-
     buffer = (char *)malloc(buffer_size * sizeof(char));
 
-    /* Where are we? 
-     * We have a buffer of length suitable of containing all the files the user wants to compress
-     * What should we do next?
-     * PARALLEL read all the files using the memory location mmap provided us with
-     * and write all the data to the buffer
-     */
 
-    /* Printing starting and ending index for each struct */
+
     pStruct[0].bufferStartIndex = 0;
     for(int i = 1; i < num_args; i++){
         pStruct[i].bufferStartIndex = pStruct[i - 1].bufferStartIndex + pStruct[i - 1].fileSize;
     }
-    /*
-    for(int i = 0; i < num_args;i++){
-        //printf("start: %llu end: %llu\n", pStruct[i].bufferStartIndex, pStruct[i].bufferStartIndex + pStruct[i].fileSize - 1);
-    }
-    */
-    //pthread_t p2[num_args];
+
+    
     for(int i = 0; i < num_args; i++){
         pthread_create(&p[i], NULL, loadBufferThread, &pStruct[i]);
     }
@@ -173,14 +143,6 @@ int main(int argc, char * argv[]){
     for(int i = 0; i < num_args; i++){
         pthread_join(p[i], NULL);
     }
-
-    //printf("(((((((((Printing The Buffer:)))))))))\n");
-
-    for(unsigned long long i = 0; i < buffer_size; i++){
-        //printf("%c", buffer[i]);
-    }
-
-
 
     /* Compressing */
     /* If threads are enough or not for dividing the buffer*/
@@ -197,19 +159,17 @@ int main(int argc, char * argv[]){
     zippedByteArr = malloc(zippedByteLength * sizeof(zipped_byte_t *));
     int indexArr[numberOfProcessors];
     for(int i = 0; i < numberOfProcessors; i++){
-        //printf("IN FOR LOOP I = %d\n", i);
         zippedByteArr[i] = (zipped_byte_t *)malloc(2 * (buffer_size / numberOfProcessors) * sizeof(zipped_byte_t));
         indexArr[i] = i;
         pthread_create(&p[i], NULL, compressBufferThread, &indexArr[i]);
     }
     
-    //printf("HERE: 1\n");
+   
     for(int i = 0; i < numberOfProcessors; i++){
         pthread_join(p[i], NULL);
     }
 
     if ((buffer_size / numberOfProcessors) * numberOfProcessors != buffer_size){
-        /* Make a new array of structures */
         int counter = 0;
         int runLength = 1;
         zippedByteArr[numberOfProcessors] = (zipped_byte_t *)malloc(2 * (buffer_size / numberOfProcessors) * sizeof(zipped_byte_t));
@@ -230,42 +190,23 @@ int main(int argc, char * argv[]){
         counterArr[numberOfProcessors] = counter;
     }
 
-
-   
-
-    //printf("HERE: 2\n");
-    
-    for(int i = 0; i < zippedByteLength; i++){
-        for(int j = 0; j < counterArr[i]; j++){
-            //printf("%d%c", zippedByteArr[i][j].characterCount, zippedByteArr[i][j].chracter);
-        }
-       // printf("\n");
-    }
-    
-    //counterArr[i] -> number of structures 
-
     for(int i = 0; i < zippedByteLength; i++){
         for(int j = 0; j < counterArr[i] - 1;j++){
             fwrite(&(zippedByteArr[i][j].characterCount), 1, sizeof(int), stdout);
             fwrite(&(zippedByteArr[i][j].chracter), 1, sizeof(char), stdout);
-            //printf("%d%c", zippedByteArr[i][j].characterCount, zippedByteArr[i][j].chracter);
         }
 
         if (i < zippedByteLength - 1){
             if (zippedByteArr[i][counterArr[i] - 1].chracter == zippedByteArr[i + 1][0].chracter){
-                /* write the total number of chracters (last + start) */
                 zippedByteArr[i+1][0].characterCount +=  zippedByteArr[i][counterArr[i] - 1].characterCount;
             } else {
                 fwrite(&(zippedByteArr[i][counterArr[i] - 1].characterCount), 1, sizeof(int), stdout);
                 fwrite(&(zippedByteArr[i][counterArr[i] - 1].chracter), 1, sizeof(char), stdout);
-                //printf("%d%c", zippedByteArr[i][counterArr[i] - 1].characterCount, zippedByteArr[i][counterArr[i] - 1].chracter);
             }
         } else {
             fwrite(&(zippedByteArr[i][counterArr[i] - 1].characterCount), 1, sizeof(int), stdout);
             fwrite(&(zippedByteArr[i][counterArr[i] - 1].chracter), 1, sizeof(char), stdout);
-            //printf("%d%c", zippedByteArr[i][counterArr[i] - 1].characterCount, zippedByteArr[i][counterArr[i] - 1].chracter);
         }
     }
-    //printf("HERE: 3\n");
     return 0;
 }
