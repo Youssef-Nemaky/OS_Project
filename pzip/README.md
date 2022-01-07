@@ -28,9 +28,9 @@ Doing so effectively and with high performance will require  to address (at leas
 - Now the buffer contain the zipped data merged 
 ## Authors
 
-- [Yousef Mamdouh El Nemaky]  {BN:191901741}
-- [Ahmed Almotasem Mohamed] {BN:191901716}
-- [Mourad El Deen Nashaat] {BN:1919017}
-- [Abdelaziz Abouzied Abdelaziz] {BN:191901741}
-- [Nada Mohamed Hanafy] {BN:191901741}
+- [Yousef Mamdouh El Nemaky]      {BN:191901741}
+- [Ahmed Almotasem Mohamed]       {BN:191901716}
+- [Mourad El Deen Nashaat]        {BN:191901713}
+- [Abdelaziz Abouzied Abdelaziz]  {BN:191901717}
+- [Nada Mohamed Hanafy]           {BN:191901789}
 
