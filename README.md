@@ -39,6 +39,6 @@ For Example :
 
 - [Yousef Mamdouh El Nemaky]      {BN:191901741}
 - [Ahmed Almotasem Mohamed]       {BN:191901716}
-- [Mourad El Deen Nashaat]        {BN:1919017}
-- [Abdelaziz Abouzied Abdelaziz]  {BN:191901741}
-- [Nada Mohamed Hanafy]           {BN:191901741}
+- [Mourad El Deen Nashaat]        {BN:191901713}
+- [Abdelaziz Abouzied Abdelaziz]  {BN:191901717}
+- [Nada Mohamed Hanafy]           {BN:191901789}
