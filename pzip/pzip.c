@@ -160,11 +160,11 @@ int main(int argc, char * argv[]){
     for(int i = 1; i < num_args; i++){
         pStruct[i].bufferStartIndex = pStruct[i - 1].bufferStartIndex + pStruct[i - 1].fileSize;
     }
-    
+    /*
     for(int i = 0; i < num_args;i++){
         //printf("start: %llu end: %llu\n", pStruct[i].bufferStartIndex, pStruct[i].bufferStartIndex + pStruct[i].fileSize - 1);
     }
-
+    */
     //pthread_t p2[num_args];
     for(int i = 0; i < num_args; i++){
         pthread_create(&p[i], NULL, loadBufferThread, &pStruct[i]);
