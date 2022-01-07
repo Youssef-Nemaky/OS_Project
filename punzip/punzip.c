@@ -40,8 +40,6 @@ void * fileThread(void * arg){
     
     fileStructPtr->fd = open(fileStructPtr->fileName, O_RDWR);
 
-    //printf("FD: %d\n", fileStructPtr->fd);
-
     if(fileStructPtr->fd == -1){
         printf("couldn't open file\n");
         exit(1);
@@ -54,19 +52,11 @@ void * fileThread(void * arg){
         fileStructPtr->fileSize = sb.st_size;
     }
 
-    //printf("File size is %ld\n", sb.st_size);
-
-    /* File size represents number of elements(characters) */
     pthread_mutex_lock(&buffer_size_lock);
     buffer_size = buffer_size + ((sb.st_size)/5);
     pthread_mutex_unlock(&buffer_size_lock);
 
     fileStructPtr->filePtr = mmap(NULL, sb.st_size, PROT_READ | PROT_WRITE, MAP_SHARED, fileStructPtr->fd, 0);
-    /*
-    for(int i = 0; i < sb.st_size; i++){
-        //printf("%c", (fileStructPtr->filePtr)[i]);
-    }
-    */
     return NULL;
 }
 
@@ -74,15 +64,10 @@ void * loadBufferThread(void * arg){
     file_thread_t * fileStructPtr = (file_thread_t *)arg;
     unsigned long long start = fileStructPtr->bufferStartIndex;
     unsigned long long end = fileStructPtr->bufferStartIndex + ((fileStructPtr->fileSize) / 5) ;
-    //printf("START INDEX: %llu\n", start);
-    //printf("END IS: %llu", end);
-    //printf("fileSize: %llu\n", fileStructPtr->fileSize);
+
     for(unsigned long long i = start, j = 0; i < end; i++, j += 5){
-        //printf("I AM HERE BITCH\n");
         buffer[i].characterCount = (*((int *)((fileStructPtr->filePtr) + (j))));
         buffer[i].chracter = *(fileStructPtr->filePtr + (j + 4));
-
-        //printf("%d%c", buffer[i].characterCount, buffer[i].chracter);
     }
     return NULL;
 }
@@ -107,20 +92,9 @@ void * decompressBufferThread(void * arg){
             
         }
     }
-
-
     return NULL;
 }
 
-
-
-/* TO DO
- * 1) Make multiple threads based on the number of files
- * 2) Read all the files and know their size and start decompressing and
- * 3) return an address for the decompressed SOMETHING
- * 4) start printing in main after the de-compressing is done (MAYBE MAYBE print in each thread but
- * you have to wait for the previous thread to finish its work. conditional variables? )
- */
 int main(int argc, char * argv[]){
     
     if(argc < 2){
@@ -142,10 +116,7 @@ int main(int argc, char * argv[]){
         pthread_join(p[i], NULL);
     }
     
-    //printf("in main the buffer size after running the threads is: %llu\n", buffer_size);
-
     buffer = (zipped_byte_t *)malloc(buffer_size * sizeof(zipped_byte_t));
-    //printf("BUFFER SIZE IS: %llu\n", buffer_size);
 
     threadsOutputArr = (char **)malloc(numberOfProcessors * sizeof(char *));
     pStruct[0].bufferStartIndex = 0;
@@ -162,26 +133,14 @@ int main(int argc, char * argv[]){
         pthread_join(p[i], NULL);
     }
 
-/*
-    for(int i = 0; i < buffer_size; i++){
-        printf("%d%c",buffer[i].characterCount, buffer[i].chracter);
-    }
-  */
-    //printf("\nHERE: 1\n");
-
-
     threadsOutputLength = numberOfProcessors;
-
-   //printf("HERE: 2\n");
 
     int indexArr[numberOfProcessors];
     for (int i = 0; i < numberOfProcessors; i++){
-        // printf("IN FOR LOOP I = %d\n", i);
         indexArr[i] = i;
         pthread_create(&p[i], NULL, decompressBufferThread, &indexArr[i]);
     }
 
-    //printf("HERE: 3\n");
     for (int i = 0; i < numberOfProcessors; i++)
     {
         pthread_join(p[i], NULL);
@@ -209,5 +168,4 @@ int main(int argc, char * argv[]){
             }
         }
     }
-
 }
