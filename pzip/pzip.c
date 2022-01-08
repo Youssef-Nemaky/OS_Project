@@ -8,7 +8,7 @@
 #include <sys/sysinfo.h>
 #include <pthread.h>
 
-int numberOfProcessors = 8;
+int numberOfProcessors;
 
 /* We need a lock to access the global variable to make sure everything is working fine */
 pthread_mutex_t buffer_size_lock = PTHREAD_MUTEX_INITIALIZER;
@@ -112,7 +112,7 @@ int main(int argc, char * argv[]){
         return 1;
     }
     int zippedByteLength;
-
+    numberOfProcessors = get_nprocs();
     num_args = argc - 1;
 
     pthread_t p[num_args];
