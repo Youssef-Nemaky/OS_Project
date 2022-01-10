@@ -18,18 +18,29 @@ typedef struct{
 zipped_byte_t lastZippedByte = {-1, 'a'};
 pthread_t * p;
 zipped_byte_t ** zippedByteArr;
+unsigned char equalWorkLoad = 1;
 int * zippedByteLength;
 char * filePtr;
 long fileSize;
 int * indexArr;
 void * compressBufferThread(void * arg){
-    int * indexPtr = (int * )arg;
-    int index = *indexPtr;
+    int index = *(int * )arg;
+    int start = index * (fileSize / threadsNumber);
+    int end;
+    if(equalWorkLoad == 1){
+        end = (index + 1) * (fileSize / threadsNumber);
+    } else {
+        if(index == threadsNumber - 1){
+            end = fileSize;
+        } else {
+            end = (index + 1) * (fileSize / threadsNumber);
+        }
+    }
     int runLength = 0;
     int counter = 0;
-    for(int i =  index * (fileSize / threadsNumber),j = i + 1; i < (index + 1) * (fileSize / threadsNumber);){
+    for(int i = start,j = i + 1; i < end;){
         runLength = 1;
-        while(filePtr[i] == filePtr[j] && j < (index + 1) * (fileSize / threadsNumber)){
+        while(filePtr[i] == filePtr[j] && j < end){
             runLength++;
             j++;
         }
@@ -73,10 +84,13 @@ int main(int argc, char * argv[]){
         filePtr = mmap(NULL, sb.st_size, PROT_READ , MAP_SHARED, fd , 0);
         if(fileSize < processorsNumbers){
             threadsNumber = 1;
+            equalWorkLoad = 1;
         } else if(fileSize % processorsNumbers != 0){
             threadsNumber = processorsNumbers + 1;
+            equalWorkLoad = 0;
         } else {
             threadsNumber = processorsNumbers;
+            equalWorkLoad = 1;
         }
         zippedByteArr = (zipped_byte_t **)malloc(threadsNumber * sizeof(zipped_byte_t *));
         zippedByteLength = (int *)malloc(threadsNumber * sizeof(int));
@@ -106,25 +120,24 @@ int main(int argc, char * argv[]){
                     zippedByteArr[i][0].characterCount += lastZippedByte.characterCount;
                 }
                 else {
-                    //fwrite(&(lastZippedByte.characterCount), 1, sizeof(int), stdout);
-                    //fwrite(&(lastZippedByte.chracter), 1, sizeof(char), stdout);
-                    fwrite(&(lastZippedByte), 1, sizeof(zipped_byte_t), stdout);
+                    fwrite(&(lastZippedByte.characterCount), sizeof(int), 1, stdout);
+                    fwrite(&(lastZippedByte.chracter), sizeof(char), 1, stdout);
+
                 }
             }
             
             for(int j = 0; j < zippedByteLength[i] - 1; j++){
-                //fwrite(&(zippedByteArr[i][j].characterCount), 1, sizeof(int), stdout);
-                //fwrite(&(zippedByteArr[i][j].chracter), 1, sizeof(char), stdout);
-                fwrite(&(zippedByteArr[i][j]), 1, sizeof(zipped_byte_t), stdout);
+                fwrite(&(zippedByteArr[i][j].characterCount), sizeof(int), 1, stdout);
+                fwrite(&(zippedByteArr[i][j].chracter), sizeof(char),1, stdout);
+
             }
             lastZippedByte.characterCount = zippedByteArr[i][zippedByteLength[i] - 1].characterCount;
             lastZippedByte.chracter = zippedByteArr[i][zippedByteLength[i] - 1].chracter;
 
             if((fileCounter == argc - 1) && (i == threadsNumber - 1)){
                 /* last file */
-                //fwrite(&(lastZippedByte.characterCount), 1, sizeof(int), stdout);
-                //fwrite(&(lastZippedByte.chracter), 1, sizeof(char), stdout);
-                fwrite(&(lastZippedByte), 1, sizeof(zipped_byte_t), stdout);
+                fwrite(&(lastZippedByte.characterCount),sizeof(int),1, stdout);
+                fwrite(&(lastZippedByte.chracter), sizeof(char),1, stdout);
             }
         }
 
